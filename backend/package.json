@@ -26,7 +26,10 @@
     "seeder:run": "node dist/seeder",
     "seeder:refresh": "node dist/seeder --refresh",
     "seeder:run:dev": "ts-node -r tsconfig-paths/register src/seeder",
-    "seeder:refresh:dev": "ts-node -r tsconfig-paths/register src/seeder --refresh"
+    "seeder:refresh:dev": "ts-node -r tsconfig-paths/register src/seeder --refresh",
+    "migration:generate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d src/config/data-source.ts",
+    "seed:city": "ts-node -r tsconfig-paths/register src/script/seed_sample_city.ts",
+    "bench": "ts-node -r tsconfig-paths/register src/script/benchmark_city_data.ts"
   },
   "dependencies": {
     "@nest-lab/throttler-storage-redis": "^1.1.0",
@@ -115,5 +118,31 @@
       "cookie": ">=0.7.0",
       "tmp": ">=0.2.4"
     }
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": [
+        "ts-jest",
+        {
+          "tsconfig": "<rootDir>/../tsconfig.spec.json"
+        }
+      ]
+    },
+    "moduleNameMapper": {
+      "^@/src/(.*)$": "<rootDir>/$1",
+      "^@/modules/(.*)$": "<rootDir>/modules/$1",
+      "^@/common/(.*)$": "<rootDir>/common/$1",
+      "^@/config/(.*)$": "<rootDir>/config/$1",
+      "^@/database/(.*)$": "<rootDir>/database/$1",
+      "^@/providers/(.*)$": "<rootDir>/providers/$1"
+    },
+    "testEnvironment": "node"
   }
 }
