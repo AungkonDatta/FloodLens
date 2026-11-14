@@ -1,28 +1,28 @@
 import { Module } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { APP_GUARD } from "@nestjs/core";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { PostgresDatabaseProviderModule } from "@/providers/database/postgres/provider.module";
-import { AppController } from "@/src/app.controller";
-import { AppService } from "@/src/app.service";
 import global_config from "@/config/global_config";
-import { BullModule } from "@nestjs/bull";
+import { HealthModule } from "@/modules/health/health.module";
 
 @Module({
   imports: [
     PostgresDatabaseProviderModule,
-
-    ConfigModule.forRoot({
-      isGlobal: true,
-      load: [],
-    }),
-    BullModule.forRoot({
-      url: process.env.REDIS_URL,
-    }),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [global_config],
     }),
+    // Rate limiting: at most RATE_LIMIT_MAX requests per client per minute.
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const max = parseInt(String(config.get("RATE_LIMIT_MAX") ?? ""), 10);
+        return [{ ttl: 60000, limit: Number.isFinite(max) && max > 0 ? max : 100 }];
+      },
+    }),
+    HealthModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}
