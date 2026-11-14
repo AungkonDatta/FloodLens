@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { PostgresDatabaseProviderModule } from "@/providers/database/postgres/provider.module";
 import global_config from "@/config/global_config";
+import { CityDataModule } from "@/modules/city-data/city-data.module";
 import { HealthModule } from "@/modules/health/health.module";
 
 @Module({
@@ -21,6 +22,7 @@ import { HealthModule } from "@/modules/health/health.module";
         return [{ ttl: 60000, limit: Number.isFinite(max) && max > 0 ? max : 100 }];
       },
     }),
+    CityDataModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
