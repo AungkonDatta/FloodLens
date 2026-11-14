@@ -5,6 +5,7 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { PostgresDatabaseProviderModule } from "@/providers/database/postgres/provider.module";
 import global_config from "@/config/global_config";
 import { CityDataModule } from "@/modules/city-data/city-data.module";
+import { DrainagePointsModule } from "@/modules/drainage-points/drainage-points.module";
 import { HealthModule } from "@/modules/health/health.module";
 
 @Module({
@@ -15,6 +16,7 @@ import { HealthModule } from "@/modules/health/health.module";
       load: [global_config],
     }),
     // Rate limiting: at most RATE_LIMIT_MAX requests per client per minute.
+    // Counters are kept in the API's memory (Redis is optional and not used).
     ThrottlerModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
@@ -23,6 +25,7 @@ import { HealthModule } from "@/modules/health/health.module";
       },
     }),
     CityDataModule,
+    DrainagePointsModule,
     HealthModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
