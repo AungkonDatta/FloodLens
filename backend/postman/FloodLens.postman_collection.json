@@ -1,0 +1,553 @@
+{
+  "info": {
+    "name": "FloodLens API",
+    "description": "Read-only API for the FloodLens sample city. Run folder 'Success' first (it saves ids into collection variables), then 'Negative tests'. Use Run collection to run everything at once.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001"
+    },
+    {
+      "key": "streetId",
+      "value": ""
+    },
+    {
+      "key": "drainageId",
+      "value": ""
+    },
+    {
+      "key": "drainageStreetId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Success (GET requests)",
+      "item": [
+        {
+          "name": "1. Health check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Body is only {status: ok}\", function () { pm.expect(pm.response.json()).to.eql({ status: \"ok\" }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          }
+        },
+        {
+          "name": "2. City data (intersections + streets)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Has intersections and streets\", function () { pm.expect(body.intersections).to.be.an(\"array\").that.is.not.empty; pm.expect(body.streets).to.be.an(\"array\").that.is.not.empty; });",
+                  "pm.test(\"Streets carry derived elevation\", function () { pm.expect(body.streets[0]).to.have.property(\"startElevationM\"); pm.expect(body.streets[0]).to.have.property(\"endElevationM\"); });",
+                  "pm.collectionVariables.set(\"streetId\", body.streets[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/city-data",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "city-data"
+              ]
+            }
+          }
+        },
+        {
+          "name": "3. List drainage points",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "const list = pm.response.json();",
+                  "pm.test(\"Returns an array of drainage points\", function () { pm.expect(list).to.be.an(\"array\").that.is.not.empty; });",
+                  "pm.collectionVariables.set(\"drainageId\", list[0].id);",
+                  "pm.collectionVariables.set(\"drainageStreetId\", list[0].streetId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drainage-points",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drainage-points"
+              ]
+            }
+          }
+        },
+        {
+          "name": "4. List drainage points of one street",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Every item belongs to the street\", function () { pm.response.json().forEach(function (d) { pm.expect(d.streetId).to.eql(pm.collectionVariables.get(\"drainageStreetId\")); }); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drainage-points?streetId={{drainageStreetId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drainage-points"
+              ],
+              "query": [
+                {
+                  "key": "streetId",
+                  "value": "{{drainageStreetId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "5. Get one drainage point",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Returns the requested id\", function () { pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get(\"drainageId\")); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drainage-points/{{drainageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drainage-points",
+                "{{drainageId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Negative tests (rejected requests)",
+      "item": [
+        {
+          "name": "6. Unexpected query parameter (city-data) -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400 Bad Request\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/city-data?foo=bar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "city-data"
+              ],
+              "query": [
+                {
+                  "key": "foo",
+                  "value": "bar"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "7. Unexpected query parameter (drainage-points) -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400 Bad Request\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drainage-points?foo=bar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drainage-points"
+              ],
+              "query": [
+                {
+                  "key": "foo",
+                  "value": "bar"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "8. Malformed streetId -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400 Bad Request\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drainage-points?streetId=abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drainage-points"
+              ],
+              "query": [
+                {
+                  "key": "streetId",
+                  "value": "abc"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "9. Malformed identifier in path -> 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 400 Bad Request\", function () { pm.response.to.have.status(400); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drainage-points/not-a-uuid",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drainage-points",
+                "not-a-uuid"
+              ]
+            }
+          }
+        },
+        {
+          "name": "10. Unknown identifier -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404 Not Found\", function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drainage-points/00000000-0000-4000-8000-000000000000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drainage-points",
+                "00000000-0000-4000-8000-000000000000"
+              ]
+            }
+          }
+        },
+        {
+          "name": "11. Unknown route -> 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 404 Not Found\", function () { pm.response.to.have.status(404); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/nothing-here",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "nothing-here"
+              ]
+            }
+          }
+        },
+        {
+          "name": "12. POST refused -> 405",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 405 Method Not Allowed\", function () { pm.response.to.have.status(405); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/city-data",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "city-data"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"test\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "13. PUT refused -> 405",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 405 Method Not Allowed\", function () { pm.response.to.have.status(405); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/city-data",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "city-data"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"name\": \"test\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "14. PATCH refused -> 405",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 405 Method Not Allowed\", function () { pm.response.to.have.status(405); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/drainage-points/{{drainageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drainage-points",
+                "{{drainageId}}"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"capacity\": 999}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "15. DELETE refused -> 405",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 405 Method Not Allowed\", function () { pm.response.to.have.status(405); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drainage-points/{{drainageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drainage-points",
+                "{{drainageId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "16. Data unchanged after refused writes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status is 200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Capacity was not changed to 999\", function () { pm.expect(pm.response.json().capacity).to.not.eql(999); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/drainage-points/{{drainageId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "drainage-points",
+                "{{drainageId}}"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
